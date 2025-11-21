@@ -12,9 +12,13 @@ import Landing from "@/pages/Landing";
 import Login from "@/pages/Login";
 import Register from "@/pages/Register";
 import DonorDashboard from "@/pages/DonorDashboard";
+import DonorDonations from "@/pages/DonorDonations";
 import NGODashboard from "@/pages/NGODashboard";
+import NGOBrowse from "@/pages/NGOBrowse";
 import VolunteerDashboard from "@/pages/VolunteerDashboard";
+import VolunteerTasks from "@/pages/VolunteerTasks";
 import AdminDashboard from "@/pages/AdminDashboard";
+import AdminUsers from "@/pages/AdminUsers";
 import Settings from "@/pages/Settings";
 import Help from "@/pages/Help";
 import NotFound from "@/pages/not-found";
@@ -34,10 +38,26 @@ function Router() {
         </ProtectedRoute>
       </Route>
 
+      <Route path="/donor/donations">
+        <ProtectedRoute requiredRole={['donor']}>
+          <DashboardLayout>
+            <DonorDonations />
+          </DashboardLayout>
+        </ProtectedRoute>
+      </Route>
+
       <Route path="/ngo">
         <ProtectedRoute requiredRole={['ngo']}>
           <DashboardLayout>
             <NGODashboard />
+          </DashboardLayout>
+        </ProtectedRoute>
+      </Route>
+
+      <Route path="/ngo/browse">
+        <ProtectedRoute requiredRole={['ngo']}>
+          <DashboardLayout>
+            <NGOBrowse />
           </DashboardLayout>
         </ProtectedRoute>
       </Route>
@@ -50,10 +70,26 @@ function Router() {
         </ProtectedRoute>
       </Route>
 
+      <Route path="/volunteer/tasks">
+        <ProtectedRoute requiredRole={['volunteer']}>
+          <DashboardLayout>
+            <VolunteerTasks />
+          </DashboardLayout>
+        </ProtectedRoute>
+      </Route>
+
       <Route path="/admin">
         <ProtectedRoute requiredRole={['admin']}>
           <DashboardLayout>
             <AdminDashboard />
+          </DashboardLayout>
+        </ProtectedRoute>
+      </Route>
+
+      <Route path="/admin/users">
+        <ProtectedRoute requiredRole={['admin']}>
+          <DashboardLayout>
+            <AdminUsers />
           </DashboardLayout>
         </ProtectedRoute>
       </Route>

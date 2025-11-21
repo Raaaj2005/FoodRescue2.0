@@ -79,10 +79,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: 'Invalid credentials' });
       }
 
-      if (!user.isVerified) {
-        return res.status(403).json({ error: 'Account pending verification' });
-      }
-
       const token = jwt.sign(
         { id: user.id, email: user.email, role: user.role },
         JWT_SECRET,

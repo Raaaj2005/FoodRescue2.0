@@ -224,7 +224,7 @@ export default function Landing() {
 
       <footer className="py-12 px-6 bg-card border-t">
         <div className="max-w-7xl mx-auto text-center text-muted-foreground">
-          <p>&copy; 2024 FoodRescue. All rights reserved.</p>
+          <p>&copy; 2025 FoodRescue. All rights reserved.</p>
           <p className="mt-2">Making every meal count, reducing waste together.</p>
         </div>
       </footer>

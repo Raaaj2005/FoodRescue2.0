@@ -1,6 +1,7 @@
 import { Users, Package, Truck, TrendingUp } from 'lucide-react';
 import { StatsCard } from '@/components/shared/StatsCard';
 import { UserVerificationQueue } from '@/components/admin/UserVerificationQueue';
+import { DonorNGOMap } from '@/components/admin/DonorNGOMap';
 import { motion } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -66,6 +67,15 @@ export default function AdminDashboard() {
           delay={0.3}
         />
       </div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.4 }}
+        className="mb-8"
+      >
+        <DonorNGOMap />
+      </motion.div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         <motion.div

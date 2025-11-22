@@ -1,102 +1,149 @@
-import { useQuery } from '@tanstack/react-query';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { EmptyState } from '@/components/shared/EmptyState';
-import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
-import { StatusBadge } from '@/components/shared/StatusBadge';
-import { Package, MapPin } from 'lucide-react';
-import { motion } from 'framer-motion';
-import { formatDistanceToNow } from 'date-fns';
-import type { Donation } from '@shared/schema';
-import { useAuth } from '@/contexts/AuthContext';
+import { Switch, Route } from "wouter";
+import { queryClient } from "./lib/queryClient";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { Toaster } from "@/components/ui/toaster";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { AuthProvider } from "@/contexts/AuthContext";
+import { NotificationProvider } from "@/contexts/NotificationContext";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { DashboardLayout } from "@/components/layout/DashboardLayout";
 
-export default function NGODonations() {
-  const { user } = useAuth();
-  const { data: allDonations, isLoading } = useQuery<Donation[]>({
-    queryKey: ['/api/donations'],
-  });
+import Landing from "@/pages/Landing";
+import Login from "@/pages/Login";
+import Register from "@/pages/Register";
+import DonorDashboard from "@/pages/DonorDashboard";
+import DonorDonations from "@/pages/DonorDonations";
+import DonorImpact from "@/pages/DonorImpact";
+import NGODashboard from "@/pages/NGODashboard";
+import NGOBrowse from "@/pages/NGOBrowse";
+import NGODonations from "@/pages/NGODonations";
+import VolunteerDashboard from "@/pages/VolunteerDashboard";
+import VolunteerTasks from "@/pages/VolunteerTasks";
+import AdminDashboard from "@/pages/AdminDashboard";
+import AdminUsers from "@/pages/AdminUsers";
+import Settings from "@/pages/Settings";
+import Help from "@/pages/Help";
+import NotFound from "@/pages/not-found";
 
-  const donations = allDonations?.filter(
-    d => d.matchedNGOId === user?.id && (d.status === 'accepted' || d.status === 'matched' || d.status === 'delivered')
-  ) || [];
-
-  if (isLoading) {
-    return <LoadingSpinner message="Loading your donations..." />;
-  }
-
+function Router() {
   return (
-    <div className="p-6 max-w-7xl mx-auto">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="mb-8"
-      >
-        <h1 className="text-3xl font-bold mb-2">My Accepted Donations</h1>
-        <p className="text-muted-foreground">Track all the donations you've accepted</p>
-      </motion.div>
+    <Switch>
+      <Route path="/" component={Landing} />
+      <Route path="/login" component={Login} />
+      <Route path="/register" component={Register} />
+      
+      <Route path="/donor">
+        <ProtectedRoute requiredRole={['donor']}>
+          <DashboardLayout>
+            <DonorDashboard />
+          </DashboardLayout>
+        </ProtectedRoute>
+      </Route>
 
-      {!donations || donations.length === 0 ? (
-        <Card>
-          <CardContent className="p-6">
-            <EmptyState
-              icon={Package}
-              title="No accepted donations yet"
-              description="Start accepting donations to help more people"
-            />
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {donations.map((donation, index) => (
-            <motion.div
-              key={donation.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.05 }}
-            >
-              <Card className="hover-elevate transition-all duration-300">
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-lg mb-2">
-                        {donation.foodDetails?.name || 'Food Item'}
-                      </h3>
-                      <StatusBadge status={donation.status} />
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="space-y-2 text-sm">
-                    <div className="flex items-center gap-2">
-                      <Package className="w-4 h-4 text-muted-foreground" />
-                      <span>
-                        <span className="font-medium">{donation.foodDetails?.quantity}</span> {donation.foodDetails?.unit}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-muted-foreground">Category:</span>
-                      <span className="font-medium capitalize">{donation.foodDetails?.category}</span>
-                    </div>
-                    {donation.location?.address && (
-                      <div className="flex items-center gap-2">
-                        <MapPin className="w-4 h-4 text-muted-foreground" />
-                        <span>
-                          {donation.location.address.city}, {donation.location.address.state}
-                        </span>
-                      </div>
-                    )}
-                  </div>
+      <Route path="/donor/donations">
+        <ProtectedRoute requiredRole={['donor']}>
+          <DashboardLayout>
+            <DonorDonations />
+          </DashboardLayout>
+        </ProtectedRoute>
+      </Route>
 
-                  <div className="pt-2 border-t">
-                    <p className="text-xs text-muted-foreground">
-                      Accepted {formatDistanceToNow(new Date(donation.updatedAt || donation.createdAt || new Date()), { addSuffix: true })}
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-          ))}
-        </div>
-      )}
-    </div>
+      <Route path="/donor/impact">
+        <ProtectedRoute requiredRole={['donor']}>
+          <DashboardLayout>
+            <DonorImpact />
+          </DashboardLayout>
+        </ProtectedRoute>
+      </Route>
+
+      <Route path="/ngo">
+        <ProtectedRoute requiredRole={['ngo']}>
+          <DashboardLayout>
+            <NGODashboard />
+          </DashboardLayout>
+        </ProtectedRoute>
+      </Route>
+
+      <Route path="/ngo/browse">
+        <ProtectedRoute requiredRole={['ngo']}>
+          <DashboardLayout>
+            <NGOBrowse />
+          </DashboardLayout>
+        </ProtectedRoute>
+      </Route>
+
+      <Route path="/ngo/donations">
+        <ProtectedRoute requiredRole={['ngo']}>
+          <DashboardLayout>
+            <NGODonations />
+          </DashboardLayout>
+        </ProtectedRoute>
+      </Route>
+
+      <Route path="/volunteer">
+        <ProtectedRoute requiredRole={['volunteer']}>
+          <DashboardLayout>
+            <VolunteerDashboard />
+          </DashboardLayout>
+        </ProtectedRoute>
+      </Route>
+
+      <Route path="/volunteer/tasks">
+        <ProtectedRoute requiredRole={['volunteer']}>
+          <DashboardLayout>
+            <VolunteerTasks />
+          </DashboardLayout>
+        </ProtectedRoute>
+      </Route>
+
+      <Route path="/admin">
+        <ProtectedRoute requiredRole={['admin']}>
+          <DashboardLayout>
+            <AdminDashboard />
+          </DashboardLayout>
+        </ProtectedRoute>
+      </Route>
+
+      <Route path="/admin/users">
+        <ProtectedRoute requiredRole={['admin']}>
+          <DashboardLayout>
+            <AdminUsers />
+          </DashboardLayout>
+        </ProtectedRoute>
+      </Route>
+
+      <Route path="/settings">
+        <ProtectedRoute>
+          <DashboardLayout>
+            <Settings />
+          </DashboardLayout>
+        </ProtectedRoute>
+      </Route>
+
+      <Route path="/help">
+        <ProtectedRoute>
+          <DashboardLayout>
+            <Help />
+          </DashboardLayout>
+        </ProtectedRoute>
+      </Route>
+
+      <Route component={NotFound} />
+    </Switch>
+  );
+}
+
+export default function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <AuthProvider>
+          <NotificationProvider>
+            <Toaster />
+            <Router />
+          </NotificationProvider>
+        </AuthProvider>
+      </TooltipProvider>
+    </QueryClientProvider>
   );
 }

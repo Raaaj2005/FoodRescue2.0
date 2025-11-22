@@ -1,7 +1,32 @@
 import { TaskList } from '@/components/volunteer/TaskList';
 import { motion } from 'framer-motion';
+import { useEffect } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import { queryClient } from '@/lib/queryClient';
+import io from 'socket.io-client';
 
 export default function VolunteerTasks() {
+  const { user } = useAuth();
+
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const socket = io();
+
+    socket.on('connect', () => {
+      socket.emit('join_room', user.id);
+    });
+
+    socket.on('task_assigned', () => {
+      // Refetch tasks when a new task is assigned
+      queryClient.invalidateQueries({ queryKey: ['/api/tasks'] });
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [user?.id]);
+
   return (
     <div className="p-6 max-w-7xl mx-auto">
       <motion.div

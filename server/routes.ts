@@ -235,6 +235,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           relatedDonationId: donation.id,
           relatedUserId: null,
         });
+
+        // Emit Socket.IO event to notify volunteer in real-time
+        const io = (app as any).io;
+        if (io) {
+          io.to(`user_${volunteer.id}`).emit('task_assigned', {
+            taskId: task.id,
+            donationId: donation.id,
+            message: 'New delivery task assigned to you',
+          });
+        }
       }
 
       res.json(updatedDonation);

@@ -132,7 +132,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/donations", authenticateToken, async (req, res) => {
     try {
-      const donation = await storage.createDonation(req.body);
+      const user = req.user;
+      if (user.role !== 'donor') {
+        return res.status(403).json({ error: 'Only donors can create donations' });
+      }
+
+      const donation = await storage.createDonation({
+        ...req.body,
+        donorId: user.id,
+      });
       
       // Notify all NGOs about new donation
       const allUsers = await storage.getAllUsers();

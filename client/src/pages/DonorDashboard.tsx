@@ -2,14 +2,34 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Package, TrendingUp, Scale, Award, Plus } from 'lucide-react';
 import { StatsCard } from '@/components/shared/StatsCard';
 import { Button } from '@/components/ui/button';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { DonationUploadModal } from '@/components/donor/DonationUploadModal';
 import { DonationList } from '@/components/donor/DonationList';
 import { motion } from 'framer-motion';
+import { useQuery } from '@tanstack/react-query';
+import type { Donation } from '@shared/schema';
 
 export default function DonorDashboard() {
   const { user } = useAuth();
   const [showUploadModal, setShowUploadModal] = useState(false);
+
+  const { data: donations = [] } = useQuery<Donation[]>({
+    queryKey: ['/api/donations'],
+  });
+
+  const stats = useMemo(() => {
+    const totalDonations = donations.length;
+    const acceptedDonations = donations.filter(d => d.status === 'accepted' || d.status === 'matched').length;
+    const totalQuantity = donations.reduce((sum, d) => sum + (d.foodDetails?.quantity || 0), 0);
+    const impactScore = acceptedDonations * 10 + totalDonations * 5;
+
+    return {
+      totalDonations,
+      mealsProvided: acceptedDonations,
+      foodSaved: totalQuantity,
+      impactScore,
+    };
+  }, [donations]);
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
@@ -29,7 +49,7 @@ export default function DonorDashboard() {
           </div>
           <Button onClick={() => setShowUploadModal(true)} size="lg" data-testid="button-upload-donation">
             <Plus className="w-5 h-5 mr-2" />
-            Upload Donation
+            Create Donation
           </Button>
         </div>
       </motion.div>
@@ -38,27 +58,26 @@ export default function DonorDashboard() {
         <StatsCard
           icon={Package}
           label="Total Donations"
-          value={0}
-          change={0}
+          value={stats.totalDonations}
           delay={0}
         />
         <StatsCard
           icon={TrendingUp}
-          label="Meals Provided"
-          value={0}
+          label="Accepted"
+          value={stats.mealsProvided}
           delay={0.1}
         />
         <StatsCard
           icon={Scale}
           label="Food Saved (kg)"
-          value={0}
+          value={stats.foodSaved}
           suffix=" kg"
           delay={0.2}
         />
         <StatsCard
           icon={Award}
           label="Impact Score"
-          value={0}
+          value={stats.impactScore}
           delay={0.3}
         />
       </div>

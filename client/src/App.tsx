@@ -19,6 +19,7 @@ import NGOBrowse from "@/pages/NGOBrowse";
 import NGODonations from "@/pages/NGODonations";
 import VolunteerDashboard from "@/pages/VolunteerDashboard";
 import VolunteerTasks from "@/pages/VolunteerTasks";
+import VolunteerDeliveries from "@/pages/VolunteerDeliveries";
 import AdminDashboard from "@/pages/AdminDashboard";
 import AdminUsers from "@/pages/AdminUsers";
 import Settings from "@/pages/Settings";
@@ -92,6 +93,14 @@ function Router() {
         <ProtectedRoute requiredRole={['volunteer']}>
           <DashboardLayout>
             <VolunteerTasks />
+          </DashboardLayout>
+        </ProtectedRoute>
+      </Route>
+
+      <Route path="/volunteer/deliveries">
+        <ProtectedRoute requiredRole={['volunteer']}>
+          <DashboardLayout>
+            <VolunteerDeliveries />
           </DashboardLayout>
         </ProtectedRoute>
       </Route>

@@ -281,12 +281,88 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const updatedTask = await storage.updateTask(id, {
         status: 'accepted',
+        pickupTime: new Date(),
       });
+
+      // Get donation details
+      const donation = await storage.getDonation(task.donationId);
+      if (donation) {
+        // Notify donor
+        await storage.createNotification({
+          recipientId: donation.donorId,
+          type: 'task_accepted',
+          title: 'Delivery Driver Assigned',
+          message: `A delivery driver has accepted your donation and will pick it up soon. Estimated pickup time: ${task.estimatedTime} minutes`,
+          relatedDonationId: donation.id,
+          relatedUserId: user.id,
+        });
+
+        // Notify NGO
+        await storage.createNotification({
+          recipientId: task.ngoId,
+          type: 'task_accepted',
+          title: 'Driver Assigned for Delivery',
+          message: `A delivery driver has accepted the task. Food will be delivered in approximately ${task.estimatedTime} minutes.`,
+          relatedDonationId: donation.id,
+          relatedUserId: user.id,
+        });
+      }
 
       res.json(updatedTask);
     } catch (error) {
       console.error('Accept task error:', error);
       res.status(500).json({ error: 'Failed to accept task' });
+    }
+  });
+
+  app.post("/api/tasks/:id/reject", authenticateToken, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const user = req.user;
+
+      if (user.role !== 'volunteer') {
+        return res.status(403).json({ error: 'Only volunteers can reject tasks' });
+      }
+
+      const task = await storage.getTask(id);
+      if (!task) {
+        return res.status(404).json({ error: 'Task not found' });
+      }
+
+      // Find another available volunteer
+      const allUsers = await storage.getAllUsers();
+      const availableVolunteers = allUsers.filter(
+        u => u.role === 'volunteer' && u.isVerified && u.id !== user.id
+      );
+
+      if (availableVolunteers.length === 0) {
+        const updatedTask = await storage.updateTask(id, {
+          status: 'assigned',
+        });
+        return res.json(updatedTask);
+      }
+
+      // Reassign to another volunteer
+      const newVolunteer = availableVolunteers[0];
+      const updatedTask = await storage.updateTask(id, {
+        volunteerId: newVolunteer.id,
+        status: 'assigned',
+      });
+
+      // Notify new volunteer
+      await storage.createNotification({
+        recipientId: newVolunteer.id,
+        type: 'task_assigned',
+        title: 'New Task Assigned',
+        message: 'You have been assigned a new delivery task',
+        relatedDonationId: task.donationId,
+        relatedUserId: null,
+      });
+
+      res.json(updatedTask);
+    } catch (error) {
+      console.error('Reject task error:', error);
+      res.status(500).json({ error: 'Failed to reject task' });
     }
   });
 

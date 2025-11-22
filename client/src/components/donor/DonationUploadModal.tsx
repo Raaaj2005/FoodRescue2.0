@@ -10,6 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import { useAuth } from '@/contexts/AuthContext';
 import { foodCategories } from '@shared/schema';
+import { queryClient } from '@/lib/queryClient';
 
 interface DonationUploadModalProps {
   open: boolean;
@@ -73,6 +74,9 @@ export function DonationUploadModal({ open, onOpenChange }: DonationUploadModalP
         title: 'Donation uploaded!',
         description: 'Your donation has been listed and will be matched with NGOs shortly.',
       });
+
+      queryClient.invalidateQueries({ queryKey: ['/api/donations'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/donations/available'] });
 
       onOpenChange(false);
       setFormData({

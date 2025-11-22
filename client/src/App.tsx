@@ -22,6 +22,7 @@ import VolunteerTasks from "@/pages/VolunteerTasks";
 import VolunteerDeliveries from "@/pages/VolunteerDeliveries";
 import AdminDashboard from "@/pages/AdminDashboard";
 import AdminUsers from "@/pages/AdminUsers";
+import Profile from "@/pages/Profile";
 import Settings from "@/pages/Settings";
 import Help from "@/pages/Help";
 import NotFound from "@/pages/not-found";
@@ -117,6 +118,14 @@ function Router() {
         <ProtectedRoute requiredRole={['admin']}>
           <DashboardLayout>
             <AdminUsers />
+          </DashboardLayout>
+        </ProtectedRoute>
+      </Route>
+
+      <Route path="/profile">
+        <ProtectedRoute>
+          <DashboardLayout>
+            <Profile />
           </DashboardLayout>
         </ProtectedRoute>
       </Route>

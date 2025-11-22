@@ -182,6 +182,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: 'Donation is no longer available' });
       }
 
+      // Fetch all users upfront for notifications
+      const allUsers = await storage.getAllUsers();
+
       const updatedDonation = await storage.updateDonation(id, {
         status: 'accepted',
         matchedNGOId: user.id,
@@ -202,7 +205,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       // Find available volunteer and create task
-      const allUsers = await storage.getAllUsers();
       const volunteers = allUsers.filter(u => u.role === 'volunteer' && u.isVerified);
       
       if (volunteers.length > 0) {

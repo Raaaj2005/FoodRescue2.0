@@ -32,6 +32,14 @@ export const users = pgTable("users", {
       pincode: string;
       coordinates: [number, number];
     };
+    rating?: number;
+    totalRatings?: number;
+    ratingBreakdown?: {
+      foodQuality: number;
+      packaging: number;
+      accuracy: number;
+      communication: number;
+    };
   }>(),
   
   ngoProfile: jsonb("ngo_profile").$type<{

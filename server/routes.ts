@@ -504,7 +504,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      res.json(updatedTask);
+      // Return the updated donation with 100% completion
+      res.json(updatedDonation);
     } catch (error) {
       console.error('Mark delivered error:', error);
       res.status(500).json({ error: 'Failed to mark delivery' });

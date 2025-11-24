@@ -1,227 +1,144 @@
-import { useQuery } from '@tanstack/react-query';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { EmptyState } from '@/components/shared/EmptyState';
-import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
-import { TaskLocationMap } from '@/components/volunteer/TaskLocationMap';
-import { Button } from '@/components/ui/button';
-import { Package, MapPin, Clock, Truck, AlertCircle, Map } from 'lucide-react';
-import { motion } from 'framer-motion';
 import { useState } from 'react';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
+import { Star } from 'lucide-react';
+import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import { queryClient, apiRequest } from '@/lib/queryClient';
-import type { VolunteerTask, Donation } from '@shared/schema';
 
-export function TaskList() {
+interface RatingModalProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  donationId: string;
+  donorId: string;
+  donorName: string;
+  taskId: string;
+}
+
+export function RatingModal({
+  open,
+  onOpenChange,
+  donationId,
+  donorId,
+  donorName,
+  taskId,
+}: RatingModalProps) {
   const { toast } = useToast();
-  const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null);
-  
-  const { data: tasks, isLoading } = useQuery<VolunteerTask[]>({
-    queryKey: ['/api/tasks'],
-  });
+  const [rating, setRating] = useState(5);
+  const [comment, setComment] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-  const { data: donations = [] } = useQuery<Donation[]>({
-    queryKey: ['/api/donations'],
-  });
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
 
-  const availableTasks = tasks?.filter(t => t.status === 'assigned') || [];
-
-  const getUrgencyColor = (expiryTime: string) => {
-    const now = new Date();
-    const expiry = new Date(expiryTime);
-    const hoursLeft = (expiry.getTime() - now.getTime()) / (1000 * 60 * 60);
-    
-    if (hoursLeft < 2) return 'text-red-600';
-    if (hoursLeft < 4) return 'text-orange-600';
-    return 'text-yellow-600';
-  };
-
-  const getUrgencyLabel = (expiryTime: string) => {
-    const now = new Date();
-    const expiry = new Date(expiryTime);
-    const hoursLeft = (expiry.getTime() - now.getTime()) / (1000 * 60 * 60);
-    
-    if (hoursLeft < 2) return '🔴 Critical - < 2 hours';
-    if (hoursLeft < 4) return '🟠 High - < 4 hours';
-    return '🟡 Medium - 4+ hours';
-  };
-
-  const handleAcceptTask = async (taskId: string) => {
     try {
-      await apiRequest('POST', `/api/tasks/${taskId}/accept`, {});
-      
-      queryClient.invalidateQueries({ queryKey: ['/api/tasks'] });
-      
-      toast({
-        title: 'Task Accepted!',
-        description: 'You have accepted the delivery task. Please proceed with pickup.',
+      await apiRequest('POST', '/api/ratings', {
+        donationId,
+        donorId,
+        rating,
+        comment,
       });
+
+      toast({
+        title: 'Rating submitted!',
+        description: `You rated ${donorName} with ${rating} stars.`,
+      });
+
+      // Refresh donations to show updated ratings
+      queryClient.invalidateQueries({ queryKey: ['/api/donations'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/donations/available'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/tasks'] });
+
+      onOpenChange(false);
+      setRating(5);
+      setComment('');
     } catch (error) {
       toast({
-        title: 'Failed to accept task',
+        title: 'Failed to submit rating',
         description: error instanceof Error ? error.message : 'Please try again',
         variant: 'destructive',
       });
+    } finally {
+      setIsLoading(false);
     }
   };
-
-  const handleRejectTask = async (taskId: string) => {
-    try {
-      await apiRequest('POST', `/api/tasks/${taskId}/reject`, {});
-      
-      queryClient.invalidateQueries({ queryKey: ['/api/tasks'] });
-      
-      toast({
-        title: 'Task Rejected',
-        description: 'The task has been reassigned.',
-      });
-    } catch (error) {
-      toast({
-        title: 'Failed to reject task',
-        description: error instanceof Error ? error.message : 'Please try again',
-        variant: 'destructive',
-      });
-    }
-  };
-
-  if (isLoading) {
-    return <LoadingSpinner message="Loading available tasks..." />;
-  }
-
-  if (!availableTasks || availableTasks.length === 0) {
-    return (
-      <Card>
-        <CardContent className="p-6">
-          <EmptyState
-            icon={Truck}
-            title="No tasks available"
-            description="Check back soon for delivery tasks. New tasks appear when NGOs accept donations."
-          />
-        </CardContent>
-      </Card>
-    );
-  }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Available Delivery Tasks ({availableTasks.length})</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-1 gap-4">
-          {availableTasks.map((task, index) => {
-            const donation = donations.find(d => d.id === task.donationId);
-            const urgencyLabel = donation ? getUrgencyLabel(donation.foodDetails.expiryTime) : 'N/A';
-            
-            return (
-              <motion.div
-                key={task.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.05 }}
-              >
-                <Card className="hover-elevate transition-all duration-300">
-                  <CardContent className="p-6">
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-lg mb-2">
-                          {donation?.foodDetails.name || 'Delivery Task'} #{task.id?.slice(0, 8)}
-                        </h3>
-                        <div className="flex gap-2 flex-wrap">
-                          <span className="inline-block px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-medium">
-                            Assigned
-                          </span>
-                          <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium bg-orange-100 ${getUrgencyColor(donation?.foodDetails.expiryTime || '')}`}>
-                            {urgencyLabel}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Rate {donorName}</DialogTitle>
+          <DialogDescription>
+            Share your experience with this donor to help us maintain quality standards
+          </DialogDescription>
+        </DialogHeader>
 
-                    {donation && (
-                      <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
-                        <p className="text-xs text-blue-900 font-medium">Food Details</p>
-                        <p className="text-sm mt-1">{donation.foodDetails.category} • {donation.foodDetails.quantity} {donation.foodDetails.unit}</p>
-                        {donation.foodDetails.specialInstructions && (
-                          <p className="text-xs text-blue-800 mt-1">Note: {donation.foodDetails.specialInstructions}</p>
-                        )}
-                      </div>
-                    )}
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="space-y-3">
+            <Label>Quality Rating</Label>
+            <div className="flex gap-2 justify-center py-4">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <button
+                  key={star}
+                  type="button"
+                  onClick={() => setRating(star)}
+                  className="focus:outline-none transition-transform hover:scale-110"
+                  data-testid={`button-rate-${star}`}
+                >
+                  <Star
+                    className={`w-8 h-8 ${
+                      star <= rating
+                        ? 'fill-yellow-400 text-yellow-400'
+                        : 'text-gray-300'
+                    }`}
+                  />
+                </button>
+              ))}
+            </div>
+            <div className="text-center text-sm text-muted-foreground">
+              {rating === 5 && 'Excellent!'}
+              {rating === 4 && 'Very Good'}
+              {rating === 3 && 'Good'}
+              {rating === 2 && 'Fair'}
+              {rating === 1 && 'Poor'}
+            </div>
+          </div>
 
-                    <div className="space-y-3 mb-4">
-                      <div>
-                        <p className="text-xs text-muted-foreground mb-2">PICKUP FROM</p>
-                        <div className="flex items-center gap-2">
-                          <MapPin className="w-4 h-4 text-primary" />
-                          <span className="text-sm font-medium">
-                            {typeof task.pickupLocation === 'object' && task.pickupLocation?.address ? task.pickupLocation.address : 'Location'}
-                          </span>
-                        </div>
-                      </div>
+          <div className="space-y-2">
+            <Label htmlFor="comment">Optional Comment</Label>
+            <Textarea
+              id="comment"
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
+              placeholder="Share your experience... (max 300 characters)"
+              maxLength={300}
+              rows={3}
+              data-testid="textarea-rating-comment"
+            />
+            <p className="text-xs text-muted-foreground">
+              {comment.length}/300 characters
+            </p>
+          </div>
 
-                      <div>
-                        <p className="text-xs text-muted-foreground mb-2">DELIVER TO</p>
-                        <div className="flex items-center gap-2">
-                          <MapPin className="w-4 h-4 text-green-600" />
-                          <span className="text-sm font-medium">
-                            {typeof task.deliveryLocation === 'object' && task.deliveryLocation?.address ? task.deliveryLocation.address : 'NGO Location'}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-4 pt-2 border-t">
-                        <div>
-                          <p className="text-xs text-muted-foreground">Distance</p>
-                          <p className="font-semibold">{task.distance || 'N/A'} km</p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-muted-foreground">Est. Delivery Time</p>
-                          <div className="flex items-center gap-1">
-                            <Clock className="w-4 h-4" />
-                            <p className="font-semibold">{task.estimatedTime || 0} min</p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex gap-2 mb-4">
-                      <Button
-                        onClick={() => handleAcceptTask(task.id)}
-                        className="flex-1"
-                        data-testid="button-accept-task"
-                      >
-                        Accept Task
-                      </Button>
-                      <Button
-                        onClick={() => handleRejectTask(task.id)}
-                        variant="outline"
-                        className="flex-1"
-                        data-testid="button-reject-task"
-                      >
-                        Reject
-                      </Button>
-                      <Button
-                        onClick={() => setExpandedTaskId(expandedTaskId === task.id ? null : task.id)}
-                        variant="outline"
-                        size="icon"
-                        data-testid="button-view-map"
-                        title="View route map"
-                      >
-                        <Map className="w-4 h-4" />
-                      </Button>
-                    </div>
-
-                    {expandedTaskId === task.id && (
-                      <div className="mt-4 pt-4 border-t">
-                        <TaskLocationMap task={task} />
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </motion.div>
-            );
-          })}
-        </div>
-      </CardContent>
-    </Card>
+          <div className="flex gap-3 justify-end">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              disabled={isLoading}
+              data-testid="button-cancel-rating"
+            >
+              Cancel
+            </Button>
+            <Button type="submit" disabled={isLoading} data-testid="button-submit-rating">
+              {isLoading ? <LoadingSpinner size="sm" /> : 'Submit Rating'}
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }

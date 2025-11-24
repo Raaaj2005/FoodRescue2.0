@@ -404,6 +404,131 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/tasks/:id/mark-delivered", authenticateToken, async (req, res) => {
+    try {
+      const user = req.user;
+      if (user.role !== 'volunteer') {
+        return res.status(403).json({ error: 'Only volunteers can mark deliveries' });
+      }
+
+      const { id } = req.params;
+      const task = await storage.getTask(id);
+      if (!task) {
+        return res.status(404).json({ error: 'Task not found' });
+      }
+
+      if (task.volunteerId !== user.id) {
+        return res.status(403).json({ error: 'You are not assigned to this task' });
+      }
+
+      const updatedTask = await storage.updateTask(id, {
+        status: 'delivered',
+        deliveryTime: new Date().toISOString(),
+      });
+
+      // Update donation status to delivered
+      await storage.updateDonation(task.donationId, { status: 'delivered' });
+
+      // Notify NGO that delivery is complete - they should now rate the donor
+      const ngoUser = await storage.getUser(task.ngoId);
+      if (ngoUser) {
+        await storage.createNotification({
+          recipientId: ngoUser.id,
+          type: 'delivery_completed',
+          title: 'Delivery Completed',
+          message: `Food delivery by ${user.fullName} is complete. Please rate the donor's quality.`,
+          relatedDonationId: task.donationId,
+          relatedUserId: user.id,
+        });
+      }
+
+      // Emit Socket.IO event
+      const io = (app as any).io;
+      if (io && ngoUser) {
+        io.to(`user_${ngoUser.id}`).emit('delivery_completed', {
+          taskId: id,
+          donationId: task.donationId,
+          message: 'Delivery completed',
+        });
+      }
+
+      res.json(updatedTask);
+    } catch (error) {
+      console.error('Mark delivered error:', error);
+      res.status(500).json({ error: 'Failed to mark delivery' });
+    }
+  });
+
+  // Rating Routes
+  app.post("/api/ratings", authenticateToken, async (req, res) => {
+    try {
+      const user = req.user;
+      if (user.role !== 'ngo') {
+        return res.status(403).json({ error: 'Only NGOs can rate donors' });
+      }
+
+      const { donationId, donorId, rating, comment } = req.body;
+
+      if (!donationId || !donorId || !rating) {
+        return res.status(400).json({ error: 'Missing required fields' });
+      }
+
+      if (rating < 1 || rating > 5) {
+        return res.status(400).json({ error: 'Rating must be between 1 and 5' });
+      }
+
+      const createdRating = await storage.createRating({
+        donationId,
+        donorId,
+        ratedBy: user.id,
+        rating,
+        comment: comment || '',
+      });
+
+      // Update donor profile rating
+      const donor = await storage.getUser(donorId);
+      if (donor && donor.donorProfile) {
+        const currentRating = donor.donorProfile.rating || 0;
+        const totalRatings = (donor.donorProfile.totalRatings || 0) + 1;
+        const newRating = (currentRating * (totalRatings - 1) + rating) / totalRatings;
+
+        await storage.updateUser(donorId, {
+          donorProfile: {
+            ...donor.donorProfile,
+            rating: parseFloat(newRating.toFixed(1)),
+            totalRatings,
+          },
+        });
+      }
+
+      // Notify donor of new rating
+      await storage.createNotification({
+        recipientId: donorId,
+        type: 'donation_rated',
+        title: 'Your Donation was Rated',
+        message: `${user.fullName} rated your donation with ${rating} stars: "${comment}"`,
+        relatedDonationId: donationId,
+        relatedUserId: user.id,
+      });
+
+      res.status(201).json(createdRating);
+    } catch (error) {
+      console.error('Create rating error:', error);
+      res.status(500).json({ error: 'Failed to create rating' });
+    }
+  });
+
+  app.get("/api/ratings/donation/:donationId", authenticateToken, async (req, res) => {
+    try {
+      const { donationId } = req.params;
+      const ratings = await storage.getRatingsByDonation(donationId);
+      res.json(ratings);
+    } catch (error) {
+      console.error('Get ratings error:', error);
+      res.status(500).json({ error: 'Failed to fetch ratings' });
+    }
+  });
+
   // Admin Routes
   app.get("/api/admin/pending-users", authenticateToken, async (req, res) => {
     try {

@@ -131,14 +131,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/donations/available", authenticateToken, async (req, res) => {
     try {
       const donations = await storage.getAvailableDonations();
-      // Ensure each donation has donor information attached
-      const withDonors = donations.map(d => ({
-        ...d,
-        donor: {
-          id: d.donorId,
-          fullName: 'Unknown Donor',
-          donorProfile: { rating: 0, totalRatings: 0, ratingBreakdown: { foodQuality: 0, packaging: 0, accuracy: 0, communication: 0 } }
-        }
+      // Fetch actual donor data for each donation
+      const withDonors = await Promise.all(donations.map(async (d) => {
+        const donor = await storage.getUser(d.donorId);
+        return {
+          ...d,
+          donor: {
+            id: d.donorId,
+            fullName: donor?.fullName || 'Unknown Donor',
+            donorProfile: donor?.donorProfile || { rating: 0, totalRatings: 0, ratingBreakdown: { foodQuality: 0, packaging: 0, accuracy: 0, communication: 0 } }
+          }
+        };
       }));
       res.json(withDonors);
     } catch (error) {

@@ -236,7 +236,7 @@ export class DatabaseStorage implements IStorage {
 
         // 75% - Pending delivery (NGO matched, ready to mark delivered)
         await db.insert(donations).values({
-          id: randomUUID(),
+          donationId: randomUUID(),
           donorId: donor1.id,
           matchedNGOId: ngo1.id,
           assignedVolunteerId: null,
@@ -263,7 +263,7 @@ export class DatabaseStorage implements IStorage {
 
         // 75% - Another pending delivery
         await db.insert(donations).values({
-          id: randomUUID(),
+          donationId: randomUUID(),
           donorId: donor2.id,
           matchedNGOId: ngo2.id,
           assignedVolunteerId: null,
@@ -290,7 +290,7 @@ export class DatabaseStorage implements IStorage {
 
         // 100% - Delivered and ready for NGO to rate
         await db.insert(donations).values({
-          id: randomUUID(),
+          donationId: randomUUID(),
           donorId: donor3.id,
           matchedNGOId: ngo1.id,
           assignedVolunteerId: volunteers[3]?.id || volunteers[0].id,
@@ -317,7 +317,7 @@ export class DatabaseStorage implements IStorage {
 
         // 100% - Another delivered donation
         await db.insert(donations).values({
-          id: randomUUID(),
+          donationId: randomUUID(),
           donorId: donor1.id,
           matchedNGOId: ngo2.id,
           assignedVolunteerId: vol1.id,

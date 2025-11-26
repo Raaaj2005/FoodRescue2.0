@@ -79,41 +79,6 @@ export function DonorRatingDisplay({ donor }: DonorRatingDisplayProps) {
         </div>
       </div>
 
-      {totalRatings > 0 && (
-        <div className="grid grid-cols-2 gap-3">
-          <div className="flex items-center gap-2 text-sm">
-            <Package className="w-4 h-4 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
-            <div>
-              <p className="text-xs text-muted-foreground">Food Quality</p>
-              <p className="text-sm font-semibold">{ratingBreakdown.foodQuality.toFixed(1)}/10</p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 text-sm">
-            <Award className="w-4 h-4 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
-            <div>
-              <p className="text-xs text-muted-foreground">Packaging</p>
-              <p className="text-sm font-semibold">{ratingBreakdown.packaging.toFixed(1)}/10</p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 text-sm">
-            <CheckCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
-            <div>
-              <p className="text-xs text-muted-foreground">Accuracy</p>
-              <p className="text-sm font-semibold">{ratingBreakdown.accuracy.toFixed(1)}/10</p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 text-sm">
-            <MessageCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
-            <div>
-              <p className="text-xs text-muted-foreground">Communication</p>
-              <p className="text-sm font-semibold">{ratingBreakdown.communication.toFixed(1)}/10</p>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

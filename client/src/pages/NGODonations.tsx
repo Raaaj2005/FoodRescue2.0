@@ -5,7 +5,7 @@ import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import { Button } from '@/components/ui/button';
 import { Package, MapPin, Star, CheckCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import type { Donation } from '@shared/schema';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -31,12 +31,23 @@ export default function NGODonations() {
     queryKey: ['/api/admin/users'],
   });
 
+  const { data: allRatings = [] } = useQuery({
+    queryKey: ['/api/ratings'],
+  });
+
   const donations = allDonations?.filter(
     d => d.matchedNGOId === user?.id && (d.status === 'accepted' || d.status === 'matched' || d.status === 'delivered')
   ) || [];
 
   const pendingDonations = donations.filter(d => d.status === 'matched' || d.status === 'accepted');
   const deliveredDonations = donations.filter(d => d.status === 'delivered');
+
+  // Check if current user has rated a donation
+  const getUserRatingForDonation = useMemo(() => {
+    return (donationId: string) => {
+      return allRatings.find((r: any) => r.donationId === donationId && r.ratedBy === user?.id);
+    };
+  }, [allRatings, user?.id]);
 
   const getDonor = (donorId: string) => {
     return allUsers.find((u: any) => u.id === donorId);
@@ -219,14 +230,34 @@ export default function NGODonations() {
                           <CompletionBar percentage={100} status="delivered" />
                         </div>
                       </div>
-                      <Button
-                        onClick={() => handleRateDonor(donation)}
-                        className="w-full bg-yellow-500 hover:bg-yellow-600 text-white"
-                        data-testid="button-rate-donor"
-                      >
-                        <Star className="w-4 h-4 mr-2" />
-                        Leave Feedback & Rate
-                      </Button>
+                      {getUserRatingForDonation(donation.id) ? (
+                        <div className="bg-emerald-50 dark:bg-emerald-950 border border-emerald-200 dark:border-emerald-800 rounded-md p-3">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Star className="w-4 h-4 fill-emerald-600 text-emerald-600" />
+                            <span className="text-sm font-semibold text-emerald-700 dark:text-emerald-300">
+                              Rating submitted!
+                            </span>
+                          </div>
+                          <p className="text-sm text-emerald-600 dark:text-emerald-400">
+                            You rated with {getUserRatingForDonation(donation.id)?.rating} stars.
+                            {getUserRatingForDonation(donation.id)?.comment && (
+                              <>
+                                <br />
+                                <span className="text-xs mt-1 block italic">"{getUserRatingForDonation(donation.id)?.comment}"</span>
+                              </>
+                            )}
+                          </p>
+                        </div>
+                      ) : (
+                        <Button
+                          onClick={() => handleRateDonor(donation)}
+                          className="w-full bg-yellow-500 hover:bg-yellow-600 text-white"
+                          data-testid="button-rate-donor"
+                        >
+                          <Star className="w-4 h-4 mr-2" />
+                          Leave Feedback & Rate
+                        </Button>
+                      )}
                     </CardContent>
                   </Card>
                 </motion.div>

@@ -673,6 +673,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/ratings", authenticateToken, async (req, res) => {
+    try {
+      const user = req.user;
+      // Get all donations for this user
+      const allDonations = await storage.getDonationsByNGO(user.id);
+      
+      // Get all ratings for these donations
+      const allRatings: any[] = [];
+      for (const donation of allDonations) {
+        const ratings = await storage.getRatingsByDonation(donation.id);
+        allRatings.push(...ratings);
+      }
+      res.json(allRatings);
+    } catch (error) {
+      console.error('Get ratings error:', error);
+      res.status(500).json({ error: 'Failed to fetch ratings' });
+    }
+  });
+
   app.get("/api/ratings/donation/:donationId", authenticateToken, async (req, res) => {
     try {
       const { donationId } = req.params;

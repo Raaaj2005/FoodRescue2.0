@@ -231,68 +231,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // Find available volunteer and create task
-      const volunteers = allUsers.filter(u => u.role === 'volunteer' && u.isVerified);
-      
-      if (volunteers.length > 0) {
-        const volunteer = volunteers[0];
-        const donorUser = allUsers.find(u => u.id === donation.donorId);
-        
-        const pickupAddr = donation.location?.address || { street: 'Location', city: 'Unknown', state: '', pincode: '' };
-        const pickupLocation = {
-          address: `${pickupAddr.street}, ${pickupAddr.city}`,
-          coordinates: donation.location?.coordinates || [0, 0],
-        };
-        
-        const ngoUser = allUsers.find(u => u.id === user.id);
-        const deliveryAddr = ngoUser?.ngoProfile?.address || { street: 'NGO Location', city: 'City', state: '', pincode: '' };
-        const deliveryLocation = {
-          address: `${deliveryAddr.street}, ${deliveryAddr.city}`,
-          coordinates: ngoUser?.ngoProfile?.address?.coordinates || [0, 0],
-        };
-        
-        const task = await storage.createTask({
-          taskId: `task_${Date.now()}`,
-          donationId: donation.id,
-          volunteerId: volunteer.id,
-          donorId: donation.donorId,
-          ngoId: user.id,
-          status: 'assigned',
-          pickupLocation,
-          deliveryLocation,
-          distance: '5.2',
-          estimatedTime: 30,
-        });
-
-        await storage.updateDonation(id, {
-          assignedVolunteerId: volunteer.id,
-          status: 'matched',
-        });
-
-        // Notify volunteer with location details
-        const pickupAddrDetails = donation.location?.address;
-        const pickupText = pickupAddrDetails ? `${pickupAddrDetails.street}, ${pickupAddrDetails.city}` : 'Pickup location';
-        const ngoAddrDetails = user.ngoProfile?.address;
-        const deliveryText = ngoAddrDetails ? `${ngoAddrDetails.street}, ${ngoAddrDetails.city}` : 'NGO location';
-        
-        await storage.createNotification({
-          recipientId: volunteer.id,
-          type: 'task_assigned',
-          title: 'New Delivery Task',
-          message: `Pick up ${donation.foodDetails.name} from ${pickupText} and deliver to ${user.ngoProfile?.organizationName || 'the NGO'} at ${deliveryText}`,
-          relatedDonationId: donation.id,
-          relatedUserId: null,
-        });
-
-        // Emit Socket.IO event to notify volunteer in real-time
-        if (io) {
-          io.to(`user_${volunteer.id}`).emit('task_assigned', {
-            taskId: task.id,
-            donationId: donation.id,
-            message: 'New delivery task assigned to you',
-          });
-        }
-      }
+      // Update donation to accepted status at 75% - ready for NGO to mark delivered
+      await storage.updateDonation(id, {
+        status: 'accepted',
+        completionPercentage: 75,
+      });
 
       res.json(updatedDonation);
     } catch (error) {
@@ -404,7 +347,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: 'Donation not found' });
       }
 
-      if (donation.status !== 'matched' || donation.completionPercentage !== 75) {
+      if (donation.status !== 'accepted' || donation.completionPercentage !== 75) {
         return res.status(400).json({ error: 'Donation is not ready to be marked as delivered' });
       }
 

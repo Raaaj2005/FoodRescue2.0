@@ -234,7 +234,7 @@ export class DatabaseStorage implements IStorage {
         const vol1 = volunteers[0];
         const vol2 = volunteers[1];
 
-        // 75% - Pending delivery (NGO matched, ready to mark delivered)
+        // 75% - Pending delivery (NGO accepted, ready to mark delivered)
         await db.insert(donations).values({
           donationId: randomUUID(),
           donorId: donor1.id,
@@ -255,7 +255,7 @@ export class DatabaseStorage implements IStorage {
             address: { street: '123 Main Street', city: 'New York', state: 'NY', pincode: '10001' },
             coordinates: [40.7128, -74.0060],
           },
-          status: 'matched',
+          status: 'accepted',
           completionPercentage: 75,
           createdAt: new Date(Date.now() - 15 * 60000),
           updatedAt: new Date(Date.now() - 10 * 60000),
@@ -282,7 +282,7 @@ export class DatabaseStorage implements IStorage {
             address: { street: '456 Park Ave', city: 'Brooklyn', state: 'NY', pincode: '11201' },
             coordinates: [40.6782, -73.9442],
           },
-          status: 'matched',
+          status: 'accepted',
           completionPercentage: 75,
           createdAt: new Date(Date.now() - 12 * 60000),
           updatedAt: new Date(Date.now() - 8 * 60000),

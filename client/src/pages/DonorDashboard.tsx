@@ -1,5 +1,5 @@
 import { useAuth } from '@/contexts/AuthContext';
-import { Package, TrendingUp, Scale, Award, Plus } from 'lucide-react';
+import { Package, TrendingUp, Scale, Award, Plus, Star } from 'lucide-react';
 import { StatsCard } from '@/components/shared/StatsCard';
 import { Button } from '@/components/ui/button';
 import { useState, useMemo } from 'react';
@@ -19,17 +19,19 @@ export default function DonorDashboard() {
 
   const stats = useMemo(() => {
     const totalDonations = donations.length;
-    const acceptedDonations = donations.filter(d => d.status === 'accepted' || d.status === 'matched').length;
+    const acceptedDonations = donations.filter(d => d.status === 'accepted' || d.status === 'matched' || d.status === 'delivered').length;
     const totalQuantity = donations.reduce((sum, d) => sum + (d.foodDetails?.quantity || 0), 0);
     const impactScore = acceptedDonations * 10 + totalDonations * 5;
+    const avgRating = user?.donorProfile?.rating || 0;
 
     return {
       totalDonations,
       mealsProvided: acceptedDonations,
       foodSaved: totalQuantity,
       impactScore,
+      avgRating,
     };
-  }, [donations]);
+  }, [donations, user?.donorProfile?.rating]);
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
@@ -75,9 +77,10 @@ export default function DonorDashboard() {
           delay={0.2}
         />
         <StatsCard
-          icon={Award}
-          label="Impact Score"
-          value={stats.impactScore}
+          icon={Star}
+          label="Avg Rating"
+          value={stats.avgRating}
+          suffix={` / 5`}
           delay={0.3}
         />
       </div>

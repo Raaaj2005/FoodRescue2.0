@@ -234,12 +234,12 @@ export class DatabaseStorage implements IStorage {
         const vol1 = volunteers[0];
         const vol2 = volunteers[1];
 
-        // 75% - Pending delivery (volunteer accepted, ready for NGO to mark delivered)
+        // 75% - Pending delivery (NGO matched, ready to mark delivered)
         await db.insert(donations).values({
           id: randomUUID(),
           donorId: donor1.id,
           matchedNGOId: ngo1.id,
-          assignedVolunteerId: vol1.id,
+          assignedVolunteerId: null,
           foodDetails: {
             name: 'Fresh Pasta & Sauce',
             category: 'Cooked Meals',
@@ -255,7 +255,7 @@ export class DatabaseStorage implements IStorage {
             address: { street: '123 Main Street', city: 'New York', state: 'NY', pincode: '10001' },
             coordinates: [40.7128, -74.0060],
           },
-          status: 'accepted',
+          status: 'matched',
           completionPercentage: 75,
           createdAt: new Date(Date.now() - 15 * 60000),
           updatedAt: new Date(Date.now() - 10 * 60000),
@@ -266,7 +266,7 @@ export class DatabaseStorage implements IStorage {
           id: randomUUID(),
           donorId: donor2.id,
           matchedNGOId: ngo2.id,
-          assignedVolunteerId: vol2.id,
+          assignedVolunteerId: null,
           foodDetails: {
             name: 'Bakery Items',
             category: 'Bakery',
@@ -282,7 +282,7 @@ export class DatabaseStorage implements IStorage {
             address: { street: '456 Park Ave', city: 'Brooklyn', state: 'NY', pincode: '11201' },
             coordinates: [40.6782, -73.9442],
           },
-          status: 'accepted',
+          status: 'matched',
           completionPercentage: 75,
           createdAt: new Date(Date.now() - 12 * 60000),
           updatedAt: new Date(Date.now() - 8 * 60000),

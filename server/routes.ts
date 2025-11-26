@@ -393,7 +393,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: 'Donation not found' });
       }
 
-      if (donation.status !== 'accepted' || donation.completionPercentage !== 75) {
+      if (donation.status !== 'matched' || donation.completionPercentage !== 75) {
         return res.status(400).json({ error: 'Donation is not ready to be marked as delivered' });
       }
 

@@ -378,6 +378,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Mark Donation as Delivered (NGO marks delivery complete)
+  app.patch("/api/donations/:id/mark-delivered", authenticateToken, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const user = req.user;
+
+      if (user.role !== 'ngo') {
+        return res.status(403).json({ error: 'Only NGOs can mark deliveries' });
+      }
+
+      const donation = await storage.getDonation(id);
+      if (!donation) {
+        return res.status(404).json({ error: 'Donation not found' });
+      }
+
+      if (donation.status !== 'accepted' || donation.completionPercentage !== 75) {
+        return res.status(400).json({ error: 'Donation is not ready to be marked as delivered' });
+      }
+
+      const updatedDonation = await storage.updateDonation(id, {
+        status: 'delivered',
+        completionPercentage: 100,
+      });
+
+      // Notify donor
+      await storage.createNotification({
+        recipientId: donation.donorId,
+        type: 'delivery_completed',
+        title: 'Delivery Completed',
+        message: `Your donation has been successfully delivered. The NGO will provide feedback shortly.`,
+        relatedDonationId: donation.id,
+        relatedUserId: user.id,
+      });
+
+      // Emit Socket.IO event
+      const io = (app as any).io;
+      if (io) {
+        io.to(`user_${donation.donorId}`).emit('delivery_completed', {
+          donationId: donation.id,
+          completionPercentage: 100,
+          message: 'Your donation has been delivered!',
+        });
+      }
+
+      res.json(updatedDonation);
+    } catch (error) {
+      console.error('Mark delivered error:', error);
+      res.status(500).json({ error: 'Failed to mark as delivered' });
+    }
+  });
+
   // Task Routes
   app.get("/api/tasks", authenticateToken, async (req, res) => {
     try {

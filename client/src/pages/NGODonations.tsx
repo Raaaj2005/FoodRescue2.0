@@ -62,6 +62,26 @@ export default function NGODonations() {
     },
   });
 
+  const markDeliveredMutation = useMutation({
+    mutationFn: async (donationId: string) => {
+      return apiRequest('PATCH', `/api/donations/${donationId}/mark-delivered`, {});
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Marked as delivered!',
+        description: 'You can now rate this donor.',
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/donations'] });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Failed to mark delivery',
+        description: error instanceof Error ? error.message : 'Please try again',
+        variant: 'destructive',
+      });
+    },
+  });
+
   const handleRateDonor = (donation: Donation) => {
     const donor = getDonor(donation.donorId);
     setRatingModal({
@@ -102,8 +122,10 @@ export default function NGODonations() {
           {donations.map((donation, index) => {
             const isDelivered = donation.status === 'delivered';
             const isMatched = donation.status === 'matched';
+            const isAccepted = donation.status === 'accepted';
             const canRate = isDelivered && donation.completionPercentage === 100;
             const canAcceptRide = isMatched && donation.completionPercentage === 50;
+            const canMarkDelivered = isAccepted && donation.completionPercentage === 75;
 
             return (
               <motion.div
@@ -174,6 +196,23 @@ export default function NGODonations() {
                               <>
                                 <Truck className="w-4 h-4 mr-2" />
                                 Accept & Assign Pickup
+                              </>
+                            )}
+                          </Button>
+                        )}
+                        {canMarkDelivered && (
+                          <Button
+                            onClick={() => markDeliveredMutation.mutate(donation.id)}
+                            disabled={markDeliveredMutation.isPending}
+                            className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                            data-testid="button-mark-delivered"
+                          >
+                            {markDeliveredMutation.isPending ? (
+                              <LoadingSpinner size="sm" />
+                            ) : (
+                              <>
+                                <CheckCircle className="w-4 h-4 mr-2" />
+                                Mark as Delivered
                               </>
                             )}
                           </Button>

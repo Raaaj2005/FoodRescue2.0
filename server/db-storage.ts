@@ -219,16 +219,25 @@ export class DatabaseStorage implements IStorage {
         volunteerProfile: null,
       });
 
-      // Seed sample donations to demonstrate workflow
+      // Seed sample donations to demonstrate complete workflow
       const allUsers = await this.getAllUsers();
-      const donor = allUsers.find(u => u.role === 'donor' && u.email === 'donor1@foodrescue.test');
-      const ngo = allUsers.find(u => u.role === 'ngo' && u.email === 'ngo1@foodrescue.test');
+      const donors = allUsers.filter(u => u.role === 'donor');
+      const ngos = allUsers.filter(u => u.role === 'ngo');
+      const volunteers = allUsers.filter(u => u.role === 'volunteer');
 
-      if (donor && ngo) {
-        // Pending donation
+      if (donors.length > 0 && ngos.length > 0 && volunteers.length > 0) {
+        const donor1 = donors[0];
+        const donor2 = donors[1];
+        const donor3 = donors[2];
+        const ngo1 = ngos[0];
+        const ngo2 = ngos[1];
+        const vol1 = volunteers[0];
+        const vol2 = volunteers[1];
+
+        // 0% - Pending donation waiting for NGO to accept
         await db.insert(donations).values({
           id: randomUUID(),
-          donorId: donor.id,
+          donorId: donor1.id,
           matchedNGOId: null,
           assignedVolunteerId: null,
           foodDetails: {
@@ -252,11 +261,11 @@ export class DatabaseStorage implements IStorage {
           updatedAt: new Date(),
         });
 
-        // Accepted (50%) - NGO accepted, waiting for ride
+        // 50% - NGO accepted, waiting to assign pickup
         await db.insert(donations).values({
           id: randomUUID(),
-          donorId: donor.id,
-          matchedNGOId: ngo.id,
+          donorId: donor2.id,
+          matchedNGOId: ngo1.id,
           assignedVolunteerId: null,
           foodDetails: {
             name: 'Bakery Items',
@@ -270,12 +279,66 @@ export class DatabaseStorage implements IStorage {
             images: [],
           },
           location: {
-            address: { street: '123 Main Street', city: 'New York', state: 'NY', pincode: '10001' },
-            coordinates: [40.7128, -74.0060],
+            address: { street: '456 Park Ave', city: 'Brooklyn', state: 'NY', pincode: '11201' },
+            coordinates: [40.6782, -73.9442],
           },
           status: 'matched',
           completionPercentage: 50,
           createdAt: new Date(Date.now() - 5 * 60000),
+          updatedAt: new Date(Date.now() - 5 * 60000),
+        });
+
+        // 75% - Volunteer accepted, now NGO can mark delivered
+        await db.insert(donations).values({
+          id: randomUUID(),
+          donorId: donor1.id,
+          matchedNGOId: ngo2.id,
+          assignedVolunteerId: vol1.id,
+          foodDetails: {
+            name: 'Vegetable Box',
+            category: 'Vegetables',
+            quantity: 15,
+            unit: 'kg',
+            dietaryInfo: [],
+            specialInstructions: 'Fresh produce',
+            preparationTime: new Date(Date.now() - 2 * 60 * 60000).toISOString(),
+            expiryTime: new Date(Date.now() + 4 * 60 * 60000).toISOString(),
+            images: [],
+          },
+          location: {
+            address: { street: '789 Queens Blvd', city: 'Queens', state: 'NY', pincode: '11375' },
+            coordinates: [40.7282, -73.7949],
+          },
+          status: 'accepted',
+          completionPercentage: 75,
+          createdAt: new Date(Date.now() - 15 * 60000),
+          updatedAt: new Date(Date.now() - 5 * 60000),
+        });
+
+        // 100% - Delivered and ready for NGO to rate
+        await db.insert(donations).values({
+          id: randomUUID(),
+          donorId: donor3.id,
+          matchedNGOId: ngo1.id,
+          assignedVolunteerId: vol2.id,
+          foodDetails: {
+            name: 'Fruit Assortment',
+            category: 'Fruits',
+            quantity: 20,
+            unit: 'kg',
+            dietaryInfo: ['Vegan'],
+            specialInstructions: 'Ripe and ready',
+            preparationTime: new Date(Date.now() - 3 * 60 * 60000).toISOString(),
+            expiryTime: new Date(Date.now() + 3 * 60 * 60000).toISOString(),
+            images: [],
+          },
+          location: {
+            address: { street: '123 Main Street', city: 'New York', state: 'NY', pincode: '10001' },
+            coordinates: [40.7128, -74.0060],
+          },
+          status: 'delivered',
+          completionPercentage: 100,
+          createdAt: new Date(Date.now() - 25 * 60000),
           updatedAt: new Date(Date.now() - 5 * 60000),
         });
       }
